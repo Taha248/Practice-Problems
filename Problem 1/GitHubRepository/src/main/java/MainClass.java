@@ -1,6 +1,7 @@
 import dto.GitHubDataRetriever;
 import entities.RateLimit;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -30,10 +31,9 @@ public class MainClass
       // Fetch Rate Limit
       RateLimit rateLimit = GitHubDataRetriever.getRateLimit();
 
-      if(rateManagementMode == 0)
-        executeProcessWithUnlimitedRequests(rateLimit);
-      else
-        executeProcessWithoutDelay(rateLimit);
+
+      executeProcessWithUnlimitedRequests(rateLimit);
+
     }
     catch(Exception ex)
     {
@@ -77,21 +77,37 @@ public class MainClass
     for(int i = 0; i < repositories.size(); i++)
     {
 
-      long resetTime = rateLimit.getResetTime();
-      long currentTimestamp = Instant.now().getEpochSecond();
-      int remainingRequests = rateLimit.getRemainingRequest();
-
-      // Calculating Time Left(in Seconds) For Reset
-      long timeLeftForReset = resetTime - currentTimestamp;
-
-
-      double delaySecondsPerRequest = (double) timeLeftForReset / (double) remainingRequests;
-
-
       String repository = repositories.get(i);
-      String outputReportName = outputReportPath + "/" + outputReportFileName + "-" + (i + 1) + ".csv";
-      GitHubDataRetriever.fetchAllRepositoryIssues(repository, outputReportName);
-      Thread.sleep((int) Math.ceil(delaySecondsPerRequest) * 1000);
+
+      try
+      {
+
+        long resetTime = rateLimit.getResetTime();
+        long currentTimestamp = Instant.now().getEpochSecond();
+        int remainingRequests = rateLimit.getRemainingRequest();
+
+        // Calculating Time Left(in Seconds) For Reset
+        long timeLeftForReset = resetTime - currentTimestamp;
+
+        if(remainingRequests == 0 && timeLeftForReset > 0)
+        {
+          System.out.println("Rate limit exceeded. Sleeping for " + timeLeftForReset + " seconds.");
+          Thread.sleep(timeLeftForReset * 1000);
+        }
+        else
+        {
+          double delaySecondsPerRequest = (double) timeLeftForReset / (double) remainingRequests;
+          String outputReportName = outputReportPath + "/" + outputReportFileName + "-" + (i + 1) + ".csv";
+          GitHubDataRetriever.fetchAllRepositoryIssues(repository, outputReportName);
+          Thread.sleep((int) Math.ceil(delaySecondsPerRequest) * 1000);
+        }
+      }
+      catch(IOException e)
+      {
+        System.err.println("Error fetching data for repository: " + repository);
+        e.printStackTrace();
+      }
+
     }
 
   }
