@@ -19,12 +19,11 @@ public class MainClass
 
     try
     {
-      if(args != null && args.length > 3)
+      if(args != null && args.length >2 )
       {
         repositoryFilePath = args[0];
         outputReportPath = args[1];
         GitHubDataRetriever.ACCESS_TOKEN = args[2];
-        rateManagementMode = Integer.parseInt(args[3]);
 
       }
 
