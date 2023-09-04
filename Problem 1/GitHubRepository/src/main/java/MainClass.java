@@ -1,5 +1,6 @@
 import dto.GitHubDataRetriever;
 import entities.RateLimit;
+import entities.RepositoryIssues;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -27,11 +28,9 @@ public class MainClass
 
       }
 
-      // Fetch Rate Limit
-      RateLimit rateLimit = GitHubDataRetriever.getRateLimit();
 
 
-      executeProcessWithUnlimitedRequests(rateLimit);
+      executeProcessWithUnlimitedRequests();
 
     }
     catch(Exception ex)
@@ -40,44 +39,20 @@ public class MainClass
     }
   }
 
-  private static void executeProcessWithoutDelay(RateLimit rateLimit) throws Exception
-  {
-    // Check rate limit headers
-    List<String> repositories = GitHubDataRetriever.getAllRepositories(repositoryFilePath);
-
-    for(int i = 0; i < repositories.size(); i++)
-    {
-
-      int remainingRequests = rateLimit.getRemainingRequest();
-      long resetTime = rateLimit.getResetTime();
-      long currentTimestamp = System.currentTimeMillis() / 1000;
-
-      if(remainingRequests == 0)
-      {
-        long sleepTime = Math.max(0, resetTime - currentTimestamp + 1);
-        System.out.println("Rate limit exceeded. Sleeping for " + sleepTime + " seconds.");
-        TimeUnit.SECONDS.sleep(sleepTime);
-      }
-      else
-      {
-        String repository = repositories.get(i);
-        String outputReportName = outputReportPath + "/" + outputReportFileName + "-" + (i + 1) + ".csv";
-        GitHubDataRetriever.fetchAllRepositoryIssues(repository, outputReportName);
-      }
-    }
-
-
-  }
-
-  private static void executeProcessWithUnlimitedRequests(RateLimit rateLimit) throws Exception
+  private static void executeProcessWithUnlimitedRequests() throws Exception
   {
     List<String> repositories = GitHubDataRetriever.getAllRepositories(repositoryFilePath);
 
     for(int i = 0; i < repositories.size(); i++)
     {
+
+      // Fetch Rate Limit
+      RateLimit rateLimit = GitHubDataRetriever.getRateLimit();
+
 
       String repository = repositories.get(i);
 
+      String outputReportName = outputReportPath + "/" + outputReportFileName + "-" + (i + 1) + ".csv";
       try
       {
 
@@ -96,8 +71,13 @@ public class MainClass
         else
         {
           double delaySecondsPerRequest = (double) timeLeftForReset / (double) remainingRequests;
-          String outputReportName = outputReportPath + "/" + outputReportFileName + "-" + (i + 1) + ".csv";
-          GitHubDataRetriever.fetchAllRepositoryIssues(repository, outputReportName);
+
+          // Fetch Issues from repository
+          List<RepositoryIssues> repositoryIssues = GitHubDataRetriever.fetchAllRepositoryIssues(repository);
+
+          // Generate Report
+          GitHubDataRetriever.generateReport(repositoryIssues,outputReportName);
+
           Thread.sleep((int) Math.ceil(delaySecondsPerRequest) * 1000);
         }
       }

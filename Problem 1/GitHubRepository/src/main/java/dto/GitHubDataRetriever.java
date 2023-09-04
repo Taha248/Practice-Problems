@@ -15,6 +15,7 @@ import okhttp3.ResponseBody;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,10 +67,12 @@ public class GitHubDataRetriever {
         }
         return rateLimit;
     }
-    public static void fetchAllRepositoryIssues(String repository, String outputReportName) throws Exception {
+    public static List<RepositoryIssues>  fetchAllRepositoryIssues(String repository) throws Exception {
         String[] repos = repository.split("/");
         String owner = repos[repos.length - 2];
         String repo = repos[repos.length - 1];
+
+        System.out.println("Processing Repository : "+repo);
 
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder().url("https://api.github.com/repos/" + owner + "/" + repo + "/issues").header("Authorization", "Bearer " + ACCESS_TOKEN).build();
@@ -77,45 +80,50 @@ public class GitHubDataRetriever {
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 ResponseBody responseBody = response.body();
-                if (responseBody != null) {
+                if (responseBody != null)
+                {
+                    System.out.println("Issues Found in the Repository ! ....");
                     ObjectMapper objectMapper = new ObjectMapper();
-
-                    List<RepositoryIssues> issues = objectMapper.readValue(responseBody.string(), objectMapper.getTypeFactory().constructCollectionType(List.class, RepositoryIssues.class));
-
-                    // Now, 'issues' contains a list of GitHubIssue objects
-                    try (FileWriter writer = new FileWriter( outputReportName); ICSVWriter csvWriter = new CSVWriterBuilder(writer).withSeparator(',').withQuoteChar(CSVWriter.NO_QUOTE_CHARACTER).withEscapeChar(CSVWriter.NO_ESCAPE_CHARACTER).build()) {
-
-                        List<String> header = Arrays.asList("Issue Title", "Issue Details", "Total Commments", "Author", "Modified Date", "Created Date");
-
-                        csvWriter.writeNext(header.toArray(new String[0]));
-
-                        for (RepositoryIssues issue : issues) {
-                            SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-                            SimpleDateFormat outputDateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-
-                            Date dt_update = inputDateFormat.parse(issue.getUpdated_at());
-                            Date dt_create = inputDateFormat.parse(issue.getCreated_at());
-                            String str_update = outputDateFormat.format(dt_update);
-                            String str_create = outputDateFormat.format(dt_create);
-
-                            String[] issueReport = new String[]{escapeCSVCell(issue.getTitle()), escapeCSVCell(issue.getBody()), escapeCSVCell(issue.getComments()), escapeCSVCell(issue.getUser().getLogin()), str_update, str_create};
-
-                            csvWriter.writeNext(issueReport);
-                        }
-                    }
-
-                    System.out.println("Issue Report Generated ! .......");
-
-
+                    return  objectMapper.readValue(responseBody.string(), objectMapper.getTypeFactory().constructCollectionType(List.class, RepositoryIssues.class));
                 }
-            } else {
+            }
+            else
+            {
                 System.err.println("Failed to fetch issues. Status code: " + response.code());
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
+        return null;
 
+    }
+    public static void generateReport(List<RepositoryIssues> issues,String outputReportName) throws IOException, ParseException
+    {
+
+        // Now, 'issues' contains a list of GitHubIssue objects
+        try (FileWriter writer = new FileWriter( outputReportName); ICSVWriter csvWriter = new CSVWriterBuilder(writer).withSeparator(',').withQuoteChar(CSVWriter.NO_QUOTE_CHARACTER).withEscapeChar(CSVWriter.NO_ESCAPE_CHARACTER).build()) {
+
+            List<String> header = Arrays.asList("Issue Title", "Issue Details", "Total Commments", "Author", "Modified Date", "Created Date");
+
+            csvWriter.writeNext(header.toArray(new String[0]));
+
+            for (RepositoryIssues issue : issues) {
+                SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                SimpleDateFormat outputDateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+
+                Date dt_update = inputDateFormat.parse(issue.getUpdated_at());
+                Date dt_create = inputDateFormat.parse(issue.getCreated_at());
+                String str_update = outputDateFormat.format(dt_update);
+                String str_create = outputDateFormat.format(dt_create);
+
+                String[] issueReport = new String[]{escapeCSVCell(issue.getTitle()), escapeCSVCell(issue.getBody()), escapeCSVCell(issue.getComments()), escapeCSVCell(issue.getUser().getLogin()), str_update, str_create};
+
+                csvWriter.writeNext(issueReport);
+            }
+        }
+
+        System.out.println("Issue Report Generated ! .......");
     }
     public static List<String> getAllRepositories(String repositoryFilePath) throws FileNotFoundException {
         InputStream inputStream = new FileInputStream(repositoryFilePath);
