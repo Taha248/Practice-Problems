@@ -22,11 +22,13 @@ public class MainClass
     {
 
         try{
-        if (args != null && args.length > 1)
+        if (args != null && args.length > 3)
         {
             repositoryFilePath = args[0];
             outputReportPath = args[1];
-            rateManagementMode = Integer.parseInt(args[2]);
+            GitHubDataRetriever.ACCESS_TOKEN = args[2];
+            rateManagementMode = Integer.parseInt(args[3]);
+
         }
 
         // Fetch Rate Limit

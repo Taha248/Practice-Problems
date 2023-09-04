@@ -22,7 +22,7 @@ import java.util.Date;
 import java.util.List;
 
 public class GitHubDataRetriever {
-    public static final String ACCESS_TOKEN = "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";
+    public static String ACCESS_TOKEN = "ACCESS_TOKEN";
 
     public static RateLimit getRateLimit()
     {
