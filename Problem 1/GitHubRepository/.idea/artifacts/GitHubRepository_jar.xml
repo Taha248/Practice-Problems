@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="GitHubRepository:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/GitHubRepository_jar</output-path>
+    <root id="archive" name="GitHubRepository.jar">
+      <element id="module-output" name="GitHubRepository" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/run/GitHubRepositoryExtractor.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

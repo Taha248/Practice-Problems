@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="GitHubRepositoryExtractor">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/run/GitHubRepositoryExtractor.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
